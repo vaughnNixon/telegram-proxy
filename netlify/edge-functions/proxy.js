@@ -9,6 +9,12 @@ export default async (request, context) => {
     const headers = new Headers(request.headers);
     headers.delete('host');
     
+    // Retrieve the HF_TOKEN we just saved in Netlify env
+    const hfToken = Netlify.env.get("HF_TOKEN") || Deno.env.get("HF_TOKEN");
+    if (hfToken) {
+      headers.set("Authorization", `Bearer ${hfToken}`);
+    }
+    
     try {
       return await fetch(targetUrl, {
         method: "POST",
