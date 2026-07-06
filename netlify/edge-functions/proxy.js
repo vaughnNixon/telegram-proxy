@@ -1,6 +1,8 @@
 export default async (request, context) => {
   const url = new URL(request.url);
   
+  console.log(`[Netlify] Received request: ${request.method} ${url.pathname}`);
+  
   // 1. If it's a webhook POST from Telegram, relay it to Hugging Face
   if (url.pathname === "/telegram-webhook" && request.method === "POST") {
     const spaceHost = "znslzlkzkekejzlzm-hermesspace.hf.space";
@@ -11,18 +13,26 @@ export default async (request, context) => {
     
     // Retrieve the HF_TOKEN we just saved in Netlify env
     const hfToken = Netlify.env.get("HF_TOKEN") || Deno.env.get("HF_TOKEN");
+    console.log(`[Netlify] HF_TOKEN detected: ${!!hfToken}`);
+    
     if (hfToken) {
       headers.set("Authorization", `Bearer ${hfToken}`);
+    } else {
+      console.warn("[Netlify] WARNING: HF_TOKEN is missing or undefined!");
     }
     
     try {
-      return await fetch(targetUrl, {
+      console.log(`[Netlify] Relaying webhook to: ${targetUrl}`);
+      const hfResponse = await fetch(targetUrl, {
         method: "POST",
         headers: headers,
         body: await request.text()
       });
+      
+      console.log(`[Netlify] Hugging Face responded with status: ${hfResponse.status}`);
+      return hfResponse;
     } catch (e) {
-      console.error("Relay to HF failed: ", e);
+      console.error("[Netlify] ERROR: Relay to HF failed: ", e);
       return new Response("Relay failed", { status: 502 });
     }
   }
